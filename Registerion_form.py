@@ -2,8 +2,9 @@ import tkinter as tk
 from database_handler import DatabaseHandler
 
 class RegisterationForm(tk.Frame):
-    def __init__(self, parent):
+    def __init__(self, parent, refresh_callback):
         super().__init__(parent, padx=10, pady=10, borderwidth=2, relief="groove")
+        self.refresh_callback = refresh_callback
 
         tk.Label(self, text="Full Name").pack(fill="x")
         self.full_name_entry = tk.Entry(self)
@@ -31,13 +32,15 @@ class RegisterationForm(tk.Frame):
         age = self.age_spinbox.get()
         gender = self.gender_var.get()
 
-        print("Form submitted!")
+        
 
         if full_name and email and age and gender:
             db_handler = DatabaseHandler()
             db_handler.insert_user(full_name, email, age, gender)
             self.reset_form()
+            self.refresh_callback()
             
+
     def reset_form(self):
         self.full_name_entry.delete(0, tk.END)
         self.email_entry.delete(0, tk.END)
