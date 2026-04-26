@@ -28,7 +28,7 @@ class StudentList(tk.Frame):
         self.tree = ttk.Treeview(table_frame, columns=columns, show="headings", height=14)
         for col in columns:
             self.tree.heading(col, text=col)
-            width = 60 if col == "ID" else 140 if col == "Email" else 100
+            width = 40 if col == "ID" else 140 if col == "Email" else 80
             self.tree.column(col, width=width, anchor="center")
 
         scrollbar = ttk.Scrollbar(table_frame, orient="vertical", command=self.tree.yview)
