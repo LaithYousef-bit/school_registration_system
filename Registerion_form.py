@@ -1,5 +1,6 @@
 import tkinter as tk
-from tkinter import messagebox
+from tkinter import messagebox, ttk
+from collections import Counter
 from database_handler import DatabaseHandler
 
 # Matplotlib imports for embedding charts in Tkinter.
@@ -12,119 +13,142 @@ except Exception:
     FigureCanvasTkAgg = None
     MATPLOTLIB_AVAILABLE = False
 
+
 class RegisterationForm(tk.Frame):
     def __init__(self, parent, refresh_callback):
-        super().__init__(parent, padx=10, pady=10, borderwidth=2, relief="groove")
+        super().__init__(parent, bg="#ffffff", padx=20, pady=20, borderwidth=1, relief="solid")
         self.refresh_callback = refresh_callback
 
-        tk.Label(self, text="Full Name").pack(fill="x")
-        self.full_name_entry = tk.Entry(self)
-        self.full_name_entry.pack(fill="x")
+        self.full_name_var = tk.StringVar()
+        self.email_var = tk.StringVar()
+        self.age_var = tk.StringVar(value="18")
+        self.gender_var = tk.StringVar(value="Female")
+        self.grade_var = tk.StringVar(value="A")
 
-        tk.Label(self, text="Email").pack(fill="x")
-        self.email_entry = tk.Entry(self)
-        self.email_entry.pack(fill="x")
+        self.create_widgets()
 
-        tk.Label(self, text="Age").pack(fill="x")
-        self.age_spinbox = tk.Spinbox(self, from_=10, to=100)
-        self.age_spinbox.pack(fill="x")
+    def create_widgets(self):
+        title_label = tk.Label(self, text="Register New Student", bg="#ffffff",
+                               fg="#333333", font=("Helvetica", 16, "bold"))
+        title_label.grid(row=0, column=0, columnspan=2, sticky="w", pady=(0, 10))
 
-        tk.Label(self, text="Gender").pack(fill="x")
-        self.gender_var = tk.StringVar()
-        tk.Radiobutton(self, text="Male", value="Male", variable=self.gender_var).pack(anchor="w")
-        tk.Radiobutton(self, text="Female", value="Female", variable=self.gender_var).pack(anchor="w")
-        self.submit_button = tk.Button(self, text="Submit", command=self.submit_form)
-        self.submit_button.pack(fill="x", pady=5)
+        subtitle_label = tk.Label(self,
+                                  text="Add student details and watch analytics update instantly.",
+                                  bg="#ffffff", fg="#666666", font=("Helvetica", 9))
+        subtitle_label.grid(row=1, column=0, columnspan=2, sticky="w", pady=(0, 16))
 
-        # Button to visualize gender distribution
-        self.visualize_button = tk.Button(self, text="Visualize Gender Distribution",
-                                          command=self.visualize_gender_distribution)
-        self.visualize_button.pack(fill="x", pady=(0, 5))
+        self._add_row("Full Name", ttk.Entry(self, textvariable=self.full_name_var), 2)
+        self._add_row("Email", ttk.Entry(self, textvariable=self.email_var), 3)
+        self._add_row("Age", ttk.Spinbox(self, textvariable=self.age_var, from_=15, to=80, width=20), 4)
+
+        gender_label = tk.Label(self, text="Gender", bg="#ffffff", fg="#444444", anchor="w")
+        gender_label.grid(row=5, column=0, sticky="w", pady=(8, 2))
+        gender_frame = tk.Frame(self, bg="#ffffff")
+        gender_frame.grid(row=5, column=1, sticky="w", pady=(8, 2))
+        tk.Radiobutton(gender_frame, text="Male", value="Male", variable=self.gender_var,
+                       bg="#ffffff", anchor="w").pack(side="left", padx=(0, 8))
+        tk.Radiobutton(gender_frame, text="Female", value="Female", variable=self.gender_var,
+                       bg="#ffffff", anchor="w").pack(side="left")
+
+        grade_label = tk.Label(self, text="Grade", bg="#ffffff", fg="#444444", anchor="w")
+        grade_label.grid(row=6, column=0, sticky="w", pady=(8, 2))
+        grade_combo = ttk.Combobox(self, textvariable=self.grade_var,
+                                   values=["A", "B", "C", "D", "E", "F"], state="readonly",
+                                   width=18)
+        grade_combo.grid(row=6, column=1, sticky="ew", pady=(8, 2))
+        grade_combo.current(0)
+
+        self.submit_button = ttk.Button(self, text="Save Student", style="Accent.TButton",
+                                        command=self.submit_form)
+        self.submit_button.grid(row=7, column=0, columnspan=2, sticky="ew", pady=(18, 8))
+
+        self.clear_button = ttk.Button(self, text="Clear Fields", command=self.reset_form)
+        self.clear_button.grid(row=8, column=0, columnspan=2, sticky="ew")
+
+        self.visualize_button = ttk.Button(self, text="View Dashboard",
+                                          style="Accent.TButton",
+                                          command=self.visualize_statistics)
+        self.visualize_button.grid(row=9, column=0, columnspan=2, sticky="ew", pady=(16, 0))
+
+        self.columnconfigure(1, weight=1)
+
+    def _add_row(self, label_text, widget, row):
+        label = tk.Label(self, text=label_text, bg="#ffffff", fg="#444444", anchor="w")
+        label.grid(row=row, column=0, sticky="w", pady=(8, 2))
+        widget.grid(row=row, column=1, sticky="ew", pady=(8, 2))
 
     def submit_form(self):
-        full_name = self.full_name_entry.get()
-        email = self.email_entry.get()
-        age = self.age_spinbox.get()
-        gender = self.gender_var.get()
+        full_name = self.full_name_var.get().strip()
+        email = self.email_var.get().strip()
+        age = self.age_var.get().strip()
+        gender = self.gender_var.get().strip()
+        grade = self.grade_var.get().strip()
 
-        
+        if not full_name or not email or not age or not gender or not grade:
+            messagebox.showwarning("Missing Data", "Please complete all fields before submitting.")
+            return
 
-        if full_name and email and age and gender:
-            db_handler = DatabaseHandler()
-            db_handler.insert_user(full_name, email, age, gender)
+        try:
+            DatabaseHandler.insert_user(full_name, email, age, gender, grade)
             self.reset_form()
             self.refresh_callback()
-        
+            messagebox.showinfo("Saved", "Student profile saved successfully.")
+        except Exception as exc:
+            messagebox.showerror("Save Error", f"Could not save the student.\nDetails: {exc}")
+
     def reset_form(self):
-        self.full_name_entry.delete(0, tk.END)
-        self.email_entry.delete(0, tk.END)
-        self.age_spinbox.delete(0, tk.END)
-        self.age_spinbox.insert(0, "10")
-        self.gender_var.set("")
+        self.full_name_var.set("")
+        self.email_var.set("")
+        self.age_var.set("18")
+        self.gender_var.set("Female")
+        self.grade_var.set("A")
 
-    def visualize_gender_distribution(self):
-        """Fetch gender counts from the database and show a pie chart in a new window.
-
-        Uses messagebox to inform the user when there's no data or when an error occurs.
-        """
+    def visualize_statistics(self):
         if not MATPLOTLIB_AVAILABLE:
             messagebox.showerror(
                 "Visualization Error",
-                "matplotlib is not available; please install it (pip install matplotlib) to enable charting."
+                "matplotlib is not available; please install it (pip install matplotlib) to enable charts."
             )
             return
 
         try:
             students = DatabaseHandler.get_all_students()
-
             if not students:
                 messagebox.showinfo("No data", "There are no registered students to visualize.")
                 return
 
-            # students: tuples (id, name, email, age, grade)
-            male_count = 0
-            female_count = 0
-            other_count = 0
+            gender_counts = Counter(student[4] for student in students)
+            grade_counts = Counter(student[5] for student in students)
 
-            for s in students:
-                # gender stored in the 'grade' column for this schema
-                gender_val = str(s[4]).strip().lower()
-                if gender_val == 'male':
-                    male_count += 1
-                elif gender_val == 'female':
-                    female_count += 1
-                else:
-                    other_count += 1
-
-            labels = []
-            sizes = []
-            if male_count:
-                labels.append('Male')
-                sizes.append(male_count)
-            if female_count:
-                labels.append('Female')
-                sizes.append(female_count)
-            if other_count:
-                labels.append('Other')
-                sizes.append(other_count)
-
-            if not sizes:
-                messagebox.showinfo("No data", "There are no recognizable gender entries to visualize.")
-                return
-
-            # Create a new window to host the matplotlib figure
             win = tk.Toplevel(self)
-            win.title("Gender Distribution")
+            win.title("Student Dashboard")
+            win.configure(bg="#ffffff")
 
-            fig = Figure(figsize=(4, 4), dpi=100)
-            ax = fig.add_subplot(111)
-            ax.pie(sizes, labels=labels, autopct='%1.1f%%', startangle=90)
-            ax.axis('equal')  # Equal aspect ensures pie is drawn as a circle.
+            fig = Figure(figsize=(8, 4), dpi=100)
+            ax1 = fig.add_subplot(121)
+            ax2 = fig.add_subplot(122)
 
+            gender_labels = list(gender_counts.keys())
+            gender_sizes = list(gender_counts.values())
+            ax1.pie(gender_sizes,
+                    labels=gender_labels,
+                    autopct="%1.1f%%",
+                    startangle=90,
+                    colors=["#4a76d8", "#5cb85c", "#f0ad4e"])
+            ax1.set_title("Gender Distribution")
+            ax1.axis("equal")
+
+            sorted_grades = sorted(grade_counts.keys())
+            grade_values = [grade_counts[grade] for grade in sorted_grades]
+            ax2.bar(sorted_grades, grade_values,
+                    color=["#4a76d8", "#5cb85c", "#f0ad4e", "#d9534f", "#7d5a97", "#4d4d4d"][:len(sorted_grades)])
+            ax2.set_title("Grade Distribution")
+            ax2.set_xlabel("Grade")
+            ax2.set_ylabel("Students")
+
+            fig.tight_layout(pad=3.0)
             canvas = FigureCanvasTkAgg(fig, master=win)
             canvas.draw()
             canvas.get_tk_widget().pack(fill=tk.BOTH, expand=True)
-
-        except Exception as e:
-            # Use messagebox to show an error to the user
-            messagebox.showerror("Visualization Error", f"An error occurred while visualizing: {e}")
+        except Exception as exc:
+            messagebox.showerror("Visualization Error", f"An error occurred while visualizing: {exc}")
