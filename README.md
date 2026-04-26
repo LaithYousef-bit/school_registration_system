@@ -5,7 +5,7 @@ A Python-based school registration system using SQLite database handler.
 ## 📌 Features
 - Student registration form
 - Database handler with SQLite
-- Student list management
+- Student list management & Dashboard
 - Simple GUI with Tkinter
 - Easy to extend and customize
 
@@ -33,3 +33,11 @@ A Python-based school registration system using SQLite database handler.
 - `run_app.py` → Script to run the application  
 - `.gitignore` → Ignore unnecessary files  
 - `README.md` → Project documentation  
+
+## 🖼️ Screenshots
+
+### School Registration System
+![School Registration System](images/School_Registration_System.png)
+
+### Student Dashboard
+![Student Dashboard](images/Student_Dashboard.png)
